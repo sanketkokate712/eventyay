@@ -29,7 +29,9 @@ from eventyay.control.forms.global_settings import (
     SSOConfigForm,
     UpdateSettingsForm,
     StartPageSettingsForm,
+    GlobalMessageForm,
 )
+from eventyay.control.tasks import send_global_broadcast_email_safe
 from eventyay.control.permissions import (
     AdministratorPermissionRequiredMixin,
     StaffMemberRequiredMixin,
@@ -167,8 +169,30 @@ class UpdateCheckView(StaffMemberRequiredMixin, FormView):
         return reverse('eventyay_admin:admin.global.update')
 
 
-class MessageView(AdministratorPermissionRequiredMixin, TemplateView):
+class MessageView(AdministratorPermissionRequiredMixin, FormView):
     template_name = 'pretixcontrol/global_message.html'
+    form_class = GlobalMessageForm
+
+    def get_success_url(self):
+        return reverse('eventyay_admin:admin.global.message')
+
+    def form_valid(self, form):
+        subject = form.cleaned_data['subject'].data
+        message = form.cleaned_data['message'].data
+        
+        send_global_broadcast_email_safe.apply_async(
+            kwargs={
+                'subject_data': subject,
+                'message_data': message,
+            }
+        )
+        
+        messages.success(
+            self.request,
+            _('Your broadcast email has been queued for sending to all active users.')
+        )
+        
+        return super().form_valid(form)
 
 
 class GlobalSettingsTestEmailView(AdministratorPermissionRequiredMixin, View):

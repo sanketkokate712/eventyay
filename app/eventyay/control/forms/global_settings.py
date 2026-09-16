@@ -728,3 +728,16 @@ class StripeKeyValidator:
                 }
 
             raise forms.ValidationError(message, code='invalid-stripe-key', params=params)
+
+from eventyay.common.forms.fields import I18nEmailBodyFormField
+
+class GlobalMessageForm(forms.Form):
+    subject = I18nFormField(
+        widget=I18nTextInput,
+        required=True,
+        label=_('Subject'),
+    )
+    message = I18nEmailBodyFormField(
+        required=True,
+        label=_('Message'),
+    )

@@ -87,3 +87,61 @@ def delete_organizer_data(organizer_id: int, user_id: int | None = None) -> None
             protected_labels,
         )
         raise
+
+from django.conf import settings
+from eventyay.base.services.mail import mail_send_task
+
+@app.task(name='eventyay.control.send_global_broadcast_email')
+def send_global_broadcast_email(subject: dict, message: dict) -> None:
+    users = User.objects.filter(is_active=True)
+    sender = settings.DEFAULT_FROM_EMAIL
+    
+    for user in users:
+        locale = user.locale or settings.LANGUAGE_CODE
+        
+        localized_subject = subject.get(locale) or subject.get(settings.LANGUAGE_CODE) or next(iter(subject.values()), '')
+        localized_message = message.get(locale) or message.get(settings.LANGUAGE_CODE) or next(iter(message.values()), '')
+
+        if not localized_subject or not localized_message:
+            continue
+
+        mail_send_task.apply_async(
+            kwargs={
+                'to': [user.email],
+                'subject': localized_subject,
+                'body': localized_message,
+                'html': localized_message,
+                'sender': sender,
+            }
+        )
+
+@app.task(name='eventyay.control.send_global_broadcast_email_safe')
+def send_global_broadcast_email_safe(subject_data, message_data) -> None:
+    users = User.objects.filter(is_active=True)
+    sender = settings.DEFAULT_FROM_EMAIL
+    
+    for user in users:
+        locale = user.locale or settings.LANGUAGE_CODE
+        
+        if isinstance(subject_data, dict):
+            localized_subject = subject_data.get(locale) or subject_data.get(settings.LANGUAGE_CODE) or next(iter(subject_data.values()), '')
+        else:
+            localized_subject = subject_data
+            
+        if isinstance(message_data, dict):
+            localized_message = message_data.get(locale) or message_data.get(settings.LANGUAGE_CODE) or next(iter(message_data.values()), '')
+        else:
+            localized_message = message_data
+
+        if not localized_subject or not localized_message:
+            continue
+
+        mail_send_task.apply_async(
+            kwargs={
+                'to': [user.email],
+                'subject': localized_subject,
+                'body': localized_message,
+                'html': localized_message,
+                'sender': sender,
+            }
+        )

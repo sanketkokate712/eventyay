@@ -1,9 +1,28 @@
 {% extends "pretixcontrol/admin/base.html" %}
 {% load i18n %}
-{% load rich_text %}
+{% load bootstrap3 %}
 
-{% block title %}{% trans "System message" %}{% endblock %}
+{% block title %}{% translate "Admin Message Center" %}{% endblock %}
+
 {% block content %}
-    <h1>{% trans "System message" %}</h1>
-    {{ global_settings.banner_message_detail|rich_text }}
+    <h1>{% translate "Admin Message Center" %}</h1>
+    <p>{% translate "Send a broadcast email to all active platform users." %}</p>
+
+    <form class="form-horizontal" method="post" action="">
+        {% csrf_token %}
+        <div class="tabbed-form">
+            <fieldset>
+                <legend>{% translate "Message Content" %}</legend>
+                {% bootstrap_form_errors form %}
+                {% bootstrap_field form.subject layout='horizontal' %}
+                {% bootstrap_field form.message layout='horizontal' %}
+            </fieldset>
+        </div>
+
+        <div class="form-group submit-group">
+            <button type="submit" class="btn btn-primary btn-save" name="action" value="send">
+                {% translate "Send Broadcast" %}
+            </button>
+        </div>
+    </form>
 {% endblock %}
